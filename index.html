@@ -1,145 +1,468 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,
-initial-scale=1.0">
-  <title>Video Upload & Download</title>
-  <style>
-    * { box-sizing: border-box; }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="data:," />
+<title>Video Studio</title>
+<style>
+  :root{
+    --bg:#10121c;
+    --panel:#1c2030;
+    --panel-2:#23273d;
+    --border:#2e3350;
+    --text:#f2f3f8;
+    --muted:#aeb2c2;
+    --muted-2:#bfc3d1;
+    --accent:#ff386b;
+    --accent-hover:#ff4775;
+    --accent-soft:rgba(255,56,107,.14);
+    --danger:#ff6b6b;
+    --success:#3ddc97;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP", "Segoe UI", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 28px 16px 40px;
+    line-height:1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container{max-width:850px;margin:0 auto}
+  header{ text-align:center; padding: 6px 0 4px; }
+  h1{
+    margin:0;
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing:.02em;
+    font-weight:800;
+    line-height:1.15;
+  }
+  h1 span{ color: var(--accent); }
+  .subtitle{
+    color: var(--muted);
+    text-align:center;
+    margin:10px 0 0;
+    font-size:15px;
+  }
+  .panel{
+    background: var(--panel);
+    padding: 22px;
+    margin-top: 22px;
+    border-radius: var(--radius);
+    border:1px solid var(--border);
+  }
+  @media (max-width:560px){ .panel{padding:18px 16px} }
+  .panel h2{
+    margin:0 0 14px;
+    font-size:17px;
+    font-weight:700;
+    letter-spacing:.01em;
+  }
+  .upload-area{
+    border:2px dashed #777e9a;
+    padding: 36px 16px 30px;
+    text-align:center;
+    border-radius:12px;
+    cursor:pointer;
+    background: rgba(255,255,255,.015);
+    transition: border-color .15s, background .15s, transform .1s;
+    outline:none;
+  }
+  .upload-area:hover, .upload-area:focus-visible{ border-color: var(--accent-hover); background: var(--accent-soft); }
+  .upload-area.is-drag{ border-color: var(--accent); background: var(--accent-soft); }
+  .upload-icon{
+    width:52px;height:52px;margin:0 auto 12px;
+    display:grid;place-items:center;
+    background: var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:999px;
+    color:#fff;
+  }
+  .upload-icon svg{ width:26px;height:26px; display:block }
+  .upload-main{ font-weight:700; font-size:16px; margin:0 }
+  .upload-sub{ margin:4px 0 0; color: var(--muted); font-size:14px }
+  .formats{ margin:14px 0 0; color: var(--muted-2); font-size:13px }
+  .formats code{
+    background:#10121c; border:1px solid var(--border);
+    padding:2px 7px; border-radius:999px; font-size:12px; color:#dfe2ee;
+  }
+  input[type="file"]{ display:none }
 
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #10121c;
-      color: white;
-      padding: 30px 16px;
-    }
+  .status{
+    margin-top:16px;
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:14px;
+    line-height:1.5;
+    display:none;
+  }
+  .status.show{ display:block }
+  .status.error{ background: rgba(255,107,107,.12); border:1px solid rgba(255,107,107,.45); color:#ffd7d7 }
+  .status.success{ background: rgba(61,220,151,.12); border:1px solid rgba(61,220,151,.35); color:#c8f7e3 }
+  .status.info{ background: rgba(255,255,255,.06); border:1px solid var(--border); color: var(--muted-2) }
 
-    .container {
-      max-width: 850px;
-      margin: auto;
-    }
+  video{
+    width:100%;
+    background:#000;
+    border-radius:10px;
+    margin-top:6px;
+    display:block;
+    aspect-ratio: 16 / 9;
+    max-height: 62vh;
+    object-fit: contain;
+  }
+  /* When metadata loads we remove forced ratio via JS class if portrait */
+  video.portrait{ aspect-ratio:auto; max-height: 70vh; }
 
-    h1 { text-align: center; }
-    .subtitle {
-      color: #aeb2c2;
-      text-align: center;
-    }
+  .file-meta{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+    margin-top:14px;
+  }
+  @media (max-width:560px){ .file-meta{ grid-template-columns:1fr } }
+  .meta-item{
+    background:#141726;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    min-width:0;
+  }
+  .meta-label{ font-size:12px; color: var(--muted); letter-spacing:.04em; text-transform:uppercase; }
+  .meta-value{ font-size:14px; font-weight:600; margin-top:2px; overflow-wrap:anywhere; word-break:break-word; }
+  .meta-value.normal{ font-weight:500; color: var(--muted-2) }
 
-    .panel {
-      background: #1c2030;
-      padding: 25px;
-      margin-top: 25px;
-      border-radius: 14px;
-    }
+  .buttons{
+    display:flex; flex-wrap:wrap; gap:10px; margin-top:18px;
+  }
+  button, .button{
+    border:none;
+    background: var(--accent);
+    color:white;
+    padding:11px 18px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:15px;
+    font-weight:600;
+    text-decoration:none;
+    display:inline-flex; align-items:center; gap:8px;
+    line-height:1;
+    min-height:44px;
+  }
+  button:hover{ background: var(--accent-hover) }
+  button:disabled{ opacity:.45; cursor:not-allowed }
+  button.secondary{
+    background: transparent;
+    border:1px solid #4a4f6e;
+    color: var(--text);
+  }
+  button.secondary:hover{ background: rgba(255,255,255,.06); border-color:#777e9a }
+  button svg{ width:16px;height:16px; flex:0 0 auto }
 
-    .upload-area {
-      border: 2px dashed #777e9a;
-      padding: 35px 15px;
-      text-align: center;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-
-    .upload-area:hover {
-      border-color: #ff4775;
-    }
-
-    input[type="file"] { display: none; }
-
-    button, .button {
-      border: none;
-      background: #ff386b;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 15px;
-      text-decoration: none;
-      display: inline-block;
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    video {
-      width: 100%;
-      background: black;
-      border-radius: 10px;
-      margin-top: 15px;
-    }
-
-    .buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 18px;
-    }
-
-    .info {
-      color: #bfc3d1;
-      overflow-wrap: anywhere;
-    }
-
-    .hidden { display: none; }
-  </style>
+  .time-row{
+    display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    margin-top:10px; color: var(--muted); font-size:13px; font-variant-numeric: tabular-nums;
+  }
+  .hidden{ display:none !important }
+  .hint{ color: var(--muted); font-size:13px; margin-top:12px }
+  .hint strong{ color: var(--muted-2) }
+</style>
 </head>
 <body>
-
 <div class="container">
-  <h1>🎬 Video Studio</h1>
-  <p class="subtitle">動画をアップロードして再生・保存</p>
+  <header>
+    <h1>Video <span>Studio</span></h1>
+    <p class="subtitle">動画をアップロードして再生・保存 — ファイルはブラウザ内だけで処理されます</p>
+  </header>
 
-  <div class="panel">
-    <h2>動画ファイルを選択</h2>
+  <section class="panel" aria-labelledby="upload-heading">
+    <h2 id="upload-heading">動画ファイルを選択</h2>
 
-    <div class="upload-area" id="dropArea">
-      <p>📁 クリックしてファイルを選択（PDF や TXT は許さない）</p>
-      <p>または動画をドラッグ＆ドロップ</p>
-      <p class="info">MP4 / MOV / AVI / WEBM など</p>
+    <div class="upload-area" id="dropArea" tabindex="0" role="button" aria-label="動画ファイルを選択">
+      <div class="upload-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/></svg>
+      </div>
+      <p class="upload-main">クリックしてファイルを選択</p>
+      <p class="upload-sub">または動画をドラッグ＆ドロップ</p>
+      <p class="formats"><code>MP4</code> <code>MOV</code> <code>WebM</code> <code>M4V</code> などに対応</p>
     </div>
 
-    <input type="file" id="uploadFile"
-accept="video/*,.avi,.mov,.mp4,.webm,mv"
-onchange="handleFileSelect(event)">
-  </div>
+    <input type="file" id="uploadFile" accept="video/*,.mp4,.mov,.webm,.m4v,.avi" />
 
-  <div class="panel hidden" id="previewPanel">
-    <h2>動画プレビュー</h2>
-    <p class="info" id="fileInfo"></p>
+    <div class="status" id="statusBox" role="status" aria-live="polite"></div>
 
-    <video id="videoPlayer" controls></video>
+    <p class="hint">再生できない形式の場合は、<strong>MP4（H.264）</strong> に変換してから試してください。AVI など一部の形式はブラウザで再生できないことがありますが、ダウンロードはできます。</p>
+  </section>
+
+  <section class="panel hidden" id="previewPanel" aria-labelledby="preview-heading">
+    <h2 id="preview-heading">動画プレビュー</h2>
+
+    <video id="videoPlayer" controls playsinline preload="metadata"></video>
+
+    <div class="time-row">
+      <span id="timeLabel">0:00 / 0:00</span>
+      <span id="stateLabel">停止中</span>
+    </div>
+
+    <div class="file-meta">
+      <div class="meta-item">
+        <div class="meta-label">ファイル名</div>
+        <div class="meta-value" id="metaName">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">サイズ / 形式</div>
+        <div class="meta-value normal" id="metaSize">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">長さ</div>
+        <div class="meta-value normal" id="metaDuration">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">解像度</div>
+        <div class="meta-value normal" id="metaRes">読み込み中…</div>
+      </div>
+    </div>
 
     <div class="buttons">
-      <button id="playBtn">▶ 再生</button>
-      <button id="pauseBtn">⏸ 一時停止</button>
-      <button id="downloadBtn">⬇ ダウンロード</button>
+      <button id="toggleBtn" type="button">
+        <svg id="toggleIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        <span id="toggleLabel">再生</span>
+      </button>
+      <button id="restartBtn" type="button" class="secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        最初から
+      </button>
+      <button id="fullscreenBtn" type="button" class="secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        全画面
+      </button>
+      <button id="downloadBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="m6 10 6 6 6-6"/><path d="M4 20h16"/></svg>
+        ダウンロード
+      </button>
+      <button id="clearBtn" type="button" class="secondary">別の動画を選ぶ</button>
     </div>
-  </div>
+  </section>
 </div>
 
 <script>
-  const dropArea = document.getElementById("dropArea");
-  const fileInput = document.getElementById("uploadFile");
-  const videoPlayer = document.getElementById("videoPlayer");
-  const fileInfo = document.getElementById("fileInfo");
+  var uploadFile = document.getElementById("uploadFile");
+  var dropArea = document.getElementById("dropArea");
+  var videoPlayer = document.getElementById("videoPlayer");
+  var previewPanel = document.getElementById("previewPanel");
+  var statusBox = document.getElementById("statusBox");
 
-  let currentFile = null;
-  let downloadUrl = "";
-  let isDragging = false;
+  var metaName = document.getElementById("metaName");
+  var metaSize = document.getElementById("metaSize");
+  var metaDuration = document.getElementById("metaDuration");
+  var metaRes = document.getElementById("metaRes");
+  var timeLabel = document.getElementById("timeLabel");
+  var stateLabel = document.getElementById("stateLabel");
+  var toggleBtn = document.getElementById("toggleBtn");
+  var toggleLabel = document.getElementById("toggleLabel");
+  var toggleIcon = document.getElementById("toggleIcon");
 
-  dropArea.addEventListener("click", () => {
-    uploadFile.click();
-  });
+  var currentFile = null;
+  var currentURL = null;
 
-  fileInput.addEventListener("change", () => {
-    if (fileInput.files.length > 0) {
-      loadVideo(fileInput.files[0]);
+  function showStatus(type, message){
+    statusBox.className = "status show " + type;
+    statusBox.textContent = message;
+  }
+  function clearStatus(){
+    statusBox.className = "status";
+    statusBox.textContent = "";
+  }
+
+  function formatTime(sec){
+    if (!isFinite(sec) || sec == null) return "0:00";
+    sec = Math.max(0, Math.floor(sec));
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    function pad(n){ return (n < 10 ? "0" : "") + n; }
+    if (h > 0) return h + ":" + pad(m) + ":" + pad(s);
+    return m + ":" + pad(s);
+  }
+  function formatSize(bytes){
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + " KB";
+    if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(2) + " MB";
+    return (bytes/1024/1024/1024).toFixed(2) + " GB";
+  }
+
+  function setPlayingUI(isPlaying){
+    if (isPlaying){
+      toggleLabel.textContent = "一時停止";
+      toggleIcon.innerHTML = '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+      stateLabel.textContent = "再生中";
+    } else {
+      toggleLabel.textContent = "再生";
+      toggleIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      if (videoPlayer.ended) stateLabel.textContent = "再生終了";
+      else if (videoPlayer.readyState) stateLabel.textContent = "一時停止中";
+      else stateLabel.textContent = "停止中";
+    }
+  }
+
+  function openPicker(){ uploadFile.click(); }
+
+  dropArea.addEventListener("click", openPicker);
+  dropArea.addEventListener("keydown", function(e){
+    if (e.key === "Enter" || e.key === " "){
+      e.preventDefault();
+      openPicker();
     }
   });
 
-  // Handle file selection for download dialog
-  function handleFileSelect(event
+  uploadFile.addEventListener("change", function(){
+    if (uploadFile.files && uploadFile.files.length > 0){
+      loadVideo(uploadFile.files[0]);
+    }
+    // allow re-selecting the same file later
+    uploadFile.value = "";
+  });
+
+  // Drag & drop on the area
+  ["dragenter","dragover"].forEach(function(evt){
+    dropArea.addEventListener(evt, function(e){
+      e.preventDefault();
+      dropArea.classList.add("is-drag");
+    });
+  });
+  ["dragleave","drop"].forEach(function(evt){
+    dropArea.addEventListener(evt, function(e){
+      e.preventDefault();
+      dropArea.classList.remove("is-drag");
+    });
+  });
+  dropArea.addEventListener("drop", function(e){
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length > 0) loadVideo(files[0]);
+  });
+
+  // Prevent the browser from opening a file dropped outside the area
+  window.addEventListener("dragover", function(e){ e.preventDefault(); });
+  window.addEventListener("drop", function(e){ e.preventDefault(); });
+
+  function loadVideo(file){
+    var looksLikeVideo = (file.type && file.type.indexOf("video/") === 0) || /\.(mp4|mov|webm|m4v|avi|mkv)$/i.test(file.name);
+    if (!looksLikeVideo){
+      showStatus("error", "動画ファイルを選択してください。選択されたファイルは動画として認識できませんでした。");
+      return;
+    }
+
+    try { videoPlayer.pause(); } catch(e){}
+
+    if (currentURL){
+      URL.revokeObjectURL(currentURL);
+      currentURL = null;
+    }
+
+    currentFile = file;
+    currentURL = URL.createObjectURL(file);
+    videoPlayer.src = currentURL;
+    videoPlayer.load();
+
+    metaName.textContent = file.name;
+    var typeLabel = file.type ? file.type : "形式不明";
+    metaSize.textContent = formatSize(file.size) + " ・ " + typeLabel;
+    metaDuration.textContent = "読み込み中…";
+    metaRes.textContent = "読み込み中…";
+    timeLabel.textContent = "0:00 / 0:00";
+    videoPlayer.classList.remove("portrait");
+
+    previewPanel.classList.remove("hidden");
+    showStatus("success", "「" + file.name + "」を読み込みました。下のプレビューで再生できます。");
+    setPlayingUI(false);
+
+    // Bring preview into view on small screens
+    setTimeout(function(){
+      previewPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  }
+
+  videoPlayer.addEventListener("loadedmetadata", function(){
+    metaDuration.textContent = formatTime(videoPlayer.duration);
+    if (videoPlayer.videoWidth && videoPlayer.videoHeight){
+      metaRes.textContent = videoPlayer.videoWidth + " × " + videoPlayer.videoHeight + " px";
+      if (videoPlayer.videoHeight > videoPlayer.videoWidth) videoPlayer.classList.add("portrait");
+      else videoPlayer.classList.remove("portrait");
+    } else {
+      metaRes.textContent = "—";
+    }
+    timeLabel.textContent = formatTime(videoPlayer.currentTime) + " / " + formatTime(videoPlayer.duration);
+  });
+
+  videoPlayer.addEventListener("timeupdate", function(){
+    timeLabel.textContent = formatTime(videoPlayer.currentTime) + " / " + formatTime(videoPlayer.duration);
+  });
+  videoPlayer.addEventListener("play", function(){ setPlayingUI(true); });
+  videoPlayer.addEventListener("pause", function(){ setPlayingUI(false); });
+  videoPlayer.addEventListener("ended", function(){ setPlayingUI(false); });
+
+  videoPlayer.addEventListener("error", function(){
+    if (!currentFile) return;
+    showStatus("error", "この動画はブラウザで再生できませんでした。MP4（H.264）形式をお試しください。ファイル自体は「ダウンロード」から保存できます。");
+    metaRes.textContent = "再生非対応の可能性";
+    if (metaDuration.textContent === "読み込み中…") metaDuration.textContent = "—";
+  });
+
+  toggleBtn.addEventListener("click", function(){
+    if (!currentFile) return;
+    if (videoPlayer.paused || videoPlayer.ended){
+      var p = videoPlayer.play();
+      if (p && typeof p.catch === "function"){
+        p.catch(function(){
+          showStatus("error", "再生を開始できませんでした。この形式はブラウザで再生できない可能性があります。MP4（H.264）をお試しください。");
+        });
+      }
+    } else {
+      videoPlayer.pause();
+    }
+  });
+
+  document.getElementById("restartBtn").addEventListener("click", function(){
+    if (!currentFile) return;
+    try { videoPlayer.currentTime = 0; } catch(e){}
+    var p = videoPlayer.play();
+    if (p && typeof p.catch === "function") p.catch(function(){});
+  });
+
+  document.getElementById("fullscreenBtn").addEventListener("click", function(){
+    if (!currentFile) return;
+    var el = videoPlayer;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else if (el.webkitEnterFullscreen) el.webkitEnterFullscreen();
+  });
+
+  document.getElementById("downloadBtn").addEventListener("click", function(){
+    if (!currentFile || !currentURL) return;
+    var link = document.createElement("a");
+    link.href = currentURL;
+    link.download = currentFile.name || "video";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showStatus("info", "ダウンロードを開始しました： " + currentFile.name);
+  });
+
+  document.getElementById("clearBtn").addEventListener("click", function(){
+    try { videoPlayer.pause(); } catch(e){}
+    videoPlayer.removeAttribute("src");
+    videoPlayer.load();
+    if (currentURL) URL.revokeObjectURL(currentURL);
+    currentURL = null;
+    currentFile = null;
+    previewPanel.classList.add("hidden");
+    clearStatus();
+    openPicker();
+  });
+</script>
+</body>
+</html>
