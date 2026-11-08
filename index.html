@@ -170,13 +170,57 @@
   .hidden{ display:none !important }
   .hint{ color: var(--muted); font-size:13px; margin-top:12px }
   .hint strong{ color: var(--muted-2) }
+
+  /* YouTube */
+  .yt-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    background:#ff0033; color:#fff; font-size:12px; font-weight:800;
+    letter-spacing:.04em; padding:4px 9px; border-radius:999px; vertical-align:2px; margin-left:8px;
+  }
+  .yt-form{ display:flex; gap:10px; flex-wrap:wrap; }
+  .yt-form input{
+    flex:1 1 260px; min-width:0;
+    background:#10121c; border:1px solid var(--border); color:var(--text);
+    border-radius:8px; padding:12px 14px; font-size:15px; line-height:1.2; min-height:44px;
+    outline:none;
+  }
+  .yt-form input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft) }
+  .yt-form input::placeholder{ color:#7d8299 }
+  .yt-examples{ margin:12px 0 0; color:var(--muted); font-size:13px; overflow-wrap:anywhere }
+  .yt-examples code{
+    background:#10121c; border:1px solid var(--border);
+    padding:2px 7px; border-radius:999px; font-size:12px; color:#dfe2ee;
+  }
+  .embed-wrap{
+    position:relative; width:100%; aspect-ratio:16/9; background:#000;
+    border-radius:10px; overflow:hidden; margin-top:6px; border:1px solid var(--border);
+  }
+  .embed-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; display:block }
+  .yt-thumb-row{ display:flex; gap:14px; margin-top:14px; align-items:flex-start; flex-wrap:wrap }
+  .yt-thumb{
+    width:168px; max-width:100%; aspect-ratio:16/9; object-fit:cover;
+    border-radius:8px; border:1px solid var(--border); background:#000; display:block;
+  }
+  .yt-thumb-info{ flex:1 1 220px; min-width:0 }
+  .embed-code{
+    width:100%; margin-top:12px; background:#10121c; border:1px solid var(--border);
+    color:var(--muted-2); border-radius:8px; padding:10px 12px; font-size:12.5px;
+    line-height:1.5; resize:vertical; min-height:64px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    overflow-wrap:anywhere;
+  }
+  .notice{
+    margin-top:14px; border-radius:10px; padding:12px 14px; font-size:13.5px; line-height:1.6;
+    background:rgba(255,193,7,.09); border:1px solid rgba(255,193,7,.35); color:#ffe9a8;
+  }
+  .notice strong{ color:#fff2c4 }
+  a.button:hover{ background:var(--accent-hover) }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
     <h1>Video <span>Studio</span></h1>
-    <p class="subtitle">動画をアップロードして再生・保存 — ファイルはブラウザ内だけで処理されます</p>
+    <p class="subtitle">動画ファイルをアップロード、または YouTube の URL から取り込んで再生・保存</p>
   </header>
 
   <section class="panel" aria-labelledby="upload-heading">
@@ -196,6 +240,75 @@
     <div class="status" id="statusBox" role="status" aria-live="polite"></div>
 
     <p class="hint">再生できない形式の場合は、<strong>MP4（H.264）</strong> に変換してから試してください。AVI など一部の形式はブラウザで再生できないことがありますが、ダウンロードはできます。</p>
+  </section>
+
+  <section class="panel" aria-labelledby="yt-heading">
+    <h2 id="yt-heading">YouTube動画をURLから取り込む <span class="yt-badge">YouTube</span></h2>
+
+    <form class="yt-form" id="ytForm">
+      <input type="text" inputmode="url" id="ytUrlInput" placeholder="https://www.youtube.com/watch?v=… または https://youtu.be/…" autocomplete="off" spellcheck="false" aria-label="YouTube動画のURL" />
+      <button type="submit" id="ytLoadBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        埋め込み表示
+      </button>
+      <button type="button" class="secondary" id="ytPasteBtn">貼り付け</button>
+    </form>
+
+    <p class="yt-examples">対応形式： <code>watch?v=</code> <code>youtu.be/</code> <code>shorts/</code> <code>live/</code> <code>embed/</code></p>
+
+    <div class="status" id="ytStatusBox" role="status" aria-live="polite"></div>
+
+    <p class="hint">URLを貼るだけで、このページ内に YouTube の公式埋め込みプレーヤーで再生できます。公開動画・限定公開動画が対象です（非公開・埋め込み禁止の動画は再生できません）。</p>
+  </section>
+
+  <section class="panel hidden" id="ytPanel" aria-labelledby="yt-preview-heading">
+    <h2 id="yt-preview-heading">YouTube埋め込みプレビュー</h2>
+
+    <div class="embed-wrap">
+      <iframe id="ytFrame" title="YouTube video player" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+    </div>
+
+    <div class="yt-thumb-row">
+      <img class="yt-thumb" id="ytThumb" alt="YouTube動画のサムネイル" />
+      <div class="yt-thumb-info">
+        <div class="file-meta" style="margin-top:0;grid-template-columns:1fr">
+          <div class="meta-item">
+            <div class="meta-label">動画ID</div>
+            <div class="meta-value normal" id="ytMetaId">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">元のURL</div>
+            <div class="meta-value normal" id="ytMetaUrl" style="font-size:13px">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <label for="ytEmbedCode" style="display:block;margin-top:16px;font-size:13px;color:var(--muted)">埋め込みコード（ブログやサイトに貼れます）</label>
+    <textarea class="embed-code" id="ytEmbedCode" readonly rows="3"></textarea>
+
+    <div class="buttons">
+      <a class="button" id="ytOpenBtn" href="#" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5"/></svg>
+        YouTubeで開く
+      </a>
+      <button type="button" id="ytThumbDlBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="m6 10 6 6 6-6"/><path d="M4 20h16"/></svg>
+        サムネイルをダウンロード
+      </button>
+      <button type="button" class="secondary" id="ytHtmlDlBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12"/><path d="m6 10 6 6 6-6"/><path d="M4 20h16"/></svg>
+        埋め込みHTMLをダウンロード
+      </button>
+      <button type="button" class="secondary" id="ytCopyCodeBtn">埋め込みコードをコピー</button>
+      <button type="button" class="secondary" id="ytCopyUrlBtn">URLをコピー</button>
+      <button type="button" class="secondary" id="ytClearBtn">クリア</button>
+    </div>
+
+    <div class="notice" role="note">
+      <strong>動画ファイル（MP4）そのもののダウンロードについて：</strong>
+      YouTubeの動画ファイルは YouTube の仕様・利用規約により、このページのようなブラウザだけの仕組みでは直接ダウンロードできません。そのため、ここでは公式の埋め込み再生、サムネイル画像のダウンロード、埋め込みHTMLファイルのダウンロードを提供しています。自分の動画をファイルで保存したい場合は、YouTube Studio の「動画をダウンロード」もご利用ください。アップロードした手元のファイルは、下のプレビューからそのままダウンロードできます。
+    </div>
   </section>
 
   <section class="panel hidden" id="previewPanel" aria-labelledby="preview-heading">
@@ -462,6 +575,189 @@
     previewPanel.classList.add("hidden");
     clearStatus();
     openPicker();
+  });
+
+  /* ---------- YouTube URL import ---------- */
+  var ytForm = document.getElementById("ytForm");
+  var ytUrlInput = document.getElementById("ytUrlInput");
+  var ytStatusBox = document.getElementById("ytStatusBox");
+  var ytPanel = document.getElementById("ytPanel");
+  var ytFrame = document.getElementById("ytFrame");
+  var ytThumb = document.getElementById("ytThumb");
+  var ytMetaId = document.getElementById("ytMetaId");
+  var ytMetaUrl = document.getElementById("ytMetaUrl");
+  var ytEmbedCode = document.getElementById("ytEmbedCode");
+  var ytOpenBtn = document.getElementById("ytOpenBtn");
+  var currentYtId = null;
+  var currentYtUrl = null;
+
+  function showYtStatus(type, message){
+    ytStatusBox.className = "status show " + type;
+    ytStatusBox.textContent = message;
+  }
+  function clearYtStatus(){
+    ytStatusBox.className = "status";
+    ytStatusBox.textContent = "";
+  }
+
+  function parseYouTubeId(raw){
+    if (!raw) return null;
+    var text = String(raw).trim();
+    // Bare 11-char ID
+    if (/^[A-Za-z0-9_-]{11}$/.test(text)) return text;
+    var url;
+    try {
+      url = new URL(text.indexOf("://") === -1 ? "https://" + text : text);
+    } catch(e){ return null; }
+    var host = url.hostname.replace(/^www\.|^m\./, "").toLowerCase();
+    var id = null;
+    if (host === "youtu.be"){
+      id = url.pathname.split("/").filter(Boolean)[0] || null;
+    } else if (host === "youtube.com" || host === "music.youtube.com" || host === "youtube-nocookie.com"){
+      if (url.pathname === "/watch"){
+        id = url.searchParams.get("v");
+      } else {
+        var parts = url.pathname.split("/").filter(Boolean);
+        if (["shorts","live","embed","v","clip"].indexOf(parts[0]) !== -1) id = parts[1] || null;
+      }
+    }
+    if (id && /^[A-Za-z0-9_-]{11}$/.test(id)) return id;
+    // Last-resort: any v= param
+    var v = url.searchParams ? url.searchParams.get("v") : null;
+    if (v && /^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+    return null;
+  }
+
+  function loadYouTube(rawUrl){
+    var id = parseYouTubeId(rawUrl);
+    if (!id){
+      showYtStatus("error", "YouTubeのURLとして認識できませんでした。動画ページのURL（watch / youtu.be / shorts など）を貼ってください。");
+      ytUrlInput.focus();
+      return;
+    }
+    currentYtId = id;
+    currentYtUrl = "https://www.youtube.com/watch?v=" + id;
+    var embedUrl = "https://www.youtube-nocookie.com/embed/" + id + "?rel=0";
+    ytFrame.src = embedUrl;
+    // maxres may not exist for some videos; fall back to hq on error
+    ytThumb.onerror = function(){
+      if (ytThumb.src.indexOf("maxresdefault") !== -1) ytThumb.src = "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg";
+      else ytThumb.onerror = null;
+    };
+    ytThumb.src = "https://i.ytimg.com/vi/" + id + "/maxresdefault.jpg";
+    ytThumb.alt = "YouTube動画 " + id + " のサムネイル";
+    ytMetaId.textContent = id;
+    ytMetaUrl.textContent = currentYtUrl;
+    ytOpenBtn.href = currentYtUrl;
+    ytEmbedCode.value = '<iframe width="560" height="315" src="https://www.youtube.com/embed/' + id + '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+    ytPanel.classList.remove("hidden");
+    showYtStatus("success", "YouTube動画を取り込みました。下のプレビューで再生できます。");
+    setTimeout(function(){
+      ytPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  }
+
+  ytForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    loadYouTube(ytUrlInput.value);
+  });
+
+  document.getElementById("ytPasteBtn").addEventListener("click", function(){
+    if (navigator.clipboard && navigator.clipboard.readText){
+      navigator.clipboard.readText().then(function(text){
+        if (text){ ytUrlInput.value = text; loadYouTube(text); }
+        else ytUrlInput.focus();
+      }).catch(function(){ ytUrlInput.focus(); showYtStatus("info", "貼り付けできませんでした。入力欄に長押し／右クリックで貼ってください。"); });
+    } else {
+      ytUrlInput.focus();
+      showYtStatus("info", "入力欄に貼り付けて「埋め込み表示」を押してください。");
+    }
+  });
+
+  function copyText(text, okMsg){
+    function done(){ showYtStatus("success", okMsg); }
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); }
+      catch(e){ showYtStatus("error", "コピーできませんでした。テキストを手動で選択してコピーしてください。"); }
+      ta.remove();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done).catch(fallback);
+    } else fallback();
+  }
+
+  document.getElementById("ytCopyUrlBtn").addEventListener("click", function(){
+    if (currentYtUrl) copyText(currentYtUrl, "動画のURLをコピーしました。");
+  });
+  document.getElementById("ytCopyCodeBtn").addEventListener("click", function(){
+    if (ytEmbedCode.value) copyText(ytEmbedCode.value, "埋め込みコードをコピーしました。");
+  });
+  ytEmbedCode.addEventListener("click", function(){ ytEmbedCode.select(); });
+
+  document.getElementById("ytThumbDlBtn").addEventListener("click", function(){
+    if (!currentYtId) return;
+    var btn = this;
+    btn.disabled = true;
+    var urls = [
+      "https://i.ytimg.com/vi/" + currentYtId + "/maxresdefault.jpg",
+      "https://i.ytimg.com/vi/" + currentYtId + "/hqdefault.jpg"
+    ];
+    function tryFetch(i){
+      if (i >= urls.length){
+        // Fallback: open the image so the user can save it manually
+        window.open(urls[urls.length - 1], "_blank", "noopener");
+        showYtStatus("info", "サムネイルを新しいタブで開きました。画像を長押し／右クリックで保存できます。");
+        btn.disabled = false;
+        return;
+      }
+      fetch(urls[i]).then(function(res){
+        if (!res.ok) throw new Error("bad");
+        return res.blob();
+      }).then(function(blob){
+        // maxres placeholder is a tiny 120x90 image; if suspiciously small, try hq
+        if (i === 0 && blob.size < 8000) { tryFetch(1); return; }
+        var objUrl = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = objUrl;
+        link.download = "youtube-" + currentYtId + "-thumbnail.jpg";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function(){ URL.revokeObjectURL(objUrl); }, 4000);
+        showYtStatus("success", "サムネイル画像のダウンロードを開始しました。");
+        btn.disabled = false;
+      }).catch(function(){ tryFetch(i + 1); });
+    }
+    tryFetch(0);
+  });
+
+  document.getElementById("ytHtmlDlBtn").addEventListener("click", function(){
+    if (!currentYtId) return;
+    var html = '<!doctype html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>YouTube - ' + currentYtId + '</title>\n<style>body{margin:0;background:#10121c;display:grid;place-items:center;min-height:100vh;padding:16px;box-sizing:border-box}.wrap{width:100%;max-width:860px;aspect-ratio:16/9}iframe{width:100%;height:100%;border:0;border-radius:10px}</style>\n</head>\n<body>\n<div class="wrap"><iframe src="https://www.youtube.com/embed/' + currentYtId + '" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>\n</body>\n</html>';
+    var blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    var objUrl = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = objUrl;
+    link.download = "youtube-" + currentYtId + "-embed.html";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function(){ URL.revokeObjectURL(objUrl); }, 4000);
+    showYtStatus("success", "埋め込みHTMLファイルをダウンロードしました。ブラウザで開くと動画が再生できます（ネット接続が必要です）。");
+  });
+
+  document.getElementById("ytClearBtn").addEventListener("click", function(){
+    ytFrame.removeAttribute("src");
+    ytThumb.removeAttribute("src");
+    currentYtId = null;
+    currentYtUrl = null;
+    ytUrlInput.value = "";
+    ytPanel.classList.add("hidden");
+    clearYtStatus();
+    ytUrlInput.focus();
   });
 </script>
 </body>
