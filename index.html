@@ -1,151 +1,145 @@
-### コード例 (HTML + JavaScript)
-
-以下は、GitHub へアップロードされた動画をダウンロードしたい場合に使えるシ
-ンプルな HTML ファイルの基礎構成です。
-
-```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>YouTube の動画をダウンロード</title>
-    <style>
-        /* 基本なレスポンス */
-        body { font-family: sans-serif; padding: 20px; max-width:
-1000px; margin: 0 auto; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,
+initial-scale=1.0">
+  <title>Video Upload & Download</title>
+  <style>
+    * { box-sizing: border-box; }
 
-        .container { display: flex; gap: 30px; align-items: center; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #10121c;
+      color: white;
+      padding: 30px 16px;
+    }
 
-        /* レスポンシブ */
-        @media (max-width: 600px) {
-            .container { flex-direction: column-reverse; }
-            img, video { width: 100%; height: auto; display: block;
-border-radius: 10px;}
-            h2 { text-align: center; font-size: 24px; margin: 15px 0; }
-        }
+    .container {
+      max-width: 850px;
+      margin: auto;
+    }
 
-        /* ダウンロードボタンエリア */
-        .download-area { background: #f0f0f0; padding: 20px;
-border-radius: 8px; text-align: center; box-shadow: 0 2px 4px
-rgba(0,0,0,0.1); }
+    h1 { text-align: center; }
+    .subtitle {
+      color: #aeb2c2;
+      text-align: center;
+    }
 
-        /* 画像/動画プレビューエリア */
-        .preview-container { display: flex; flex-wrap: wrap; gap: 10px;
-justify-content: center; max-width: 80%; }
+    .panel {
+      background: #1c2030;
+      padding: 25px;
+      margin-top: 25px;
+      border-radius: 14px;
+    }
 
-        .video-player { flex: 2; min-width: 300px; }
+    .upload-area {
+      border: 2px dashed #777e9a;
+      padding: 35px 15px;
+      text-align: center;
+      border-radius: 12px;
+      cursor: pointer;
+    }
 
-        /* メディア判定エリア */
-        .media-criteria { flex: 1; display: flex; align-items: center;
-justify-content: center; min-width: 300px; }
-        .media-info h4 { margin-top: 20px; color: #333; }
+    .upload-area:hover {
+      border-color: #ff4775;
+    }
 
-        /* ボタンエリア */
-        .btn-row { display: flex; gap: 15px; }
+    input[type="file"] { display: none; }
 
-        button.btn { padding: 12px 24px; font-size: 16px; cursor:
-pointer; border: none; border-radius: 5px; transition: background 0.2s;
-color: white; text-decoration: none; display: inline-block; }
-        .btn-primary { background-color: #e91e63; } /* YouTube ロゴ色に近
-い赤色 */
-        .btn-outline { background-color: transparent; border: 2px solid
-#075e54; color: #e91e63; }
+    button, .button {
+      border: none;
+      background: #ff386b;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      text-decoration: none;
+      display: inline-block;
+    }
 
-        /* 再生ボタン（ブラウザでの使用） */
-        .play-btn { background-color: #fdd835; font-size: 1.2em;
-padding: 8px 15px; width: 30px; height: 30px; border-radius: 4px;}
-    </style>
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    video {
+      width: 100%;
+      background: black;
+      border-radius: 10px;
+      margin-top: 15px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .info {
+      color: #bfc3d1;
+      overflow-wrap: anywhere;
+    }
+
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="media-criteria">
-        <h2>メディア要件の確認</h2>
-        <p>YouTube は Web サイトではありません。ブラウザで視聴できます。
-<br>
-        以下の条件を満たす動画を再生します：</p>
-        <p>1. ファイルは YouTube からアップロードされたものです。<br>
-        2. URL の長さが制限されています（約 2MB）。</p>
+  <h1>🎬 Video Studio</h1>
+  <p class="subtitle">動画をアップロードして再生・保存</p>
+
+  <div class="panel">
+    <h2>動画ファイルを選択</h2>
+
+    <div class="upload-area" id="dropArea">
+      <p>📁 クリックしてファイルを選択（PDF や TXT は許さない）</p>
+      <p>または動画をドラッグ＆ドロップ</p>
+      <p class="info">MP4 / MOV / AVI / WEBM など</p>
     </div>
 
-    <div class="download-area">
-        <h3>ファイルをアップロードします</h3>
-        <input type="file" id="uploadFile" accept=".mp4, .avi, .mov">
-        <p style="color: #666; margin-top: 10px;">
-            ファイルを選択して「Download to...」で確認してください。
-        </p>
-    </div>
+    <input type="file" id="uploadFile"
+accept="video/*,.avi,.mov,.mp4,.webm,mv"
+onchange="handleFileSelect(event)">
+  </div>
 
-    <div class="btn-row">
-        <button id="downloadBtn" class="btn btn-primary download-btn"
-onclick="handleDownload()">ファイルをダウンロード</button>
-    </div>
+  <div class="panel hidden" id="previewPanel">
+    <h2>動画プレビュー</h2>
+    <p class="info" id="fileInfo"></p>
 
-    <div class="preview-container">
-        <!-- 画像 / ビデオプレビュー -->
-        <img src="" alt="プレビュー（YouTube の動画は直接表示できません）
-」 id="previewImage">
-        <img src="" alt="プレビュー（ユーザーが設定できる）"
-id="videoPlayer">
+    <video id="videoPlayer" controls></video>
 
-        <!-- 再生ボタン -->
-        <button class="play-btn" onclick="playPreview()">▶</button>
+    <div class="buttons">
+      <button id="playBtn">▶ 再生</button>
+      <button id="pauseBtn">⏸ 一時停止</button>
+      <button id="downloadBtn">⬇ ダウンロード</button>
     </div>
+  </div>
 </div>
 
 <script>
-    // プレビュー用のファイル URL (ここに YouTube のアップロードのURL を
-貼り付け)
-    const videoUrl = "https://www.youtube.com/embed/LXb3EKWsInQ";
+  const dropArea = document.getElementById("dropArea");
+  const fileInput = document.getElementById("uploadFile");
+  const videoPlayer = document.getElementById("videoPlayer");
+  const fileInfo = document.getElementById("fileInfo");
 
-    const uploadFile = document.getElementById('uploadFile');
-    const previewImage = document.getElementById('previewImage');
-    const videoPlayer = document.getElementById('videoPlayer');
+  let currentFile = null;
+  let downloadUrl = "";
+  let isDragging = false;
 
-    function handleDownload() {
-        if (uploadFile.files && uploadFile.files[0]) {
-            const file = uploadFile.files[0];
-            // ファイル名と拡張子を保存
-            const fileName = file.name.split('.').pop() || 'ファイル';
+  dropArea.addEventListener("click", () => {
+    uploadFile.click();
+  });
 
-            // ブラウザの再生ボタンを表示（YouTube のような）
-            videoPlayer.src = videoUrl;
-            videoPlayer.play();
-
-            // 実際のダウンロード処理 (JavaScript で実行されます)
-            download(file);
-        } else {
-            alert('ファイルがありません！');
-        }
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files.length > 0) {
+      loadVideo(fileInput.files[0]);
     }
+  });
 
-    function playPreview() {
-        previewImage.src = "https://www.youtube.com/embed/LXb3EKWsInQ";
-    }
-
-    function download(filename) {
-        // 動画ファイルをダウンロードする処理を実行します。
-        // これは browser の内部で行われます。
-
-        const link = document.createElement('a');
-        link.href = videoUrl; // YouTube を直接表示
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    // ファイル選択イベントで再生ボタンを自動実行する
-    uploadFile.addEventListener('change', function(e) {
-        if (e.target.files && e.target.files[0]) {
-            const fileName = e.target.files[0].name.split('.').pop() ||
-'ファイル';
-
-            // データ形式でのダウンロード処理を実行します
-            download(fileName);
-        }
-    });
-</script>
-
-</body>
-</html>
+  // Handle file selection for download dialog
+  function handleFileSelect(event
